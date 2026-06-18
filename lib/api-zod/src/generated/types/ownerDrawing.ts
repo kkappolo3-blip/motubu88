@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface OwnerDrawing {
+  id: number;
+  description: string;
+  amount: number;
+  date: string;
+  created_at: string;
 }

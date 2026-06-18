@@ -6,6 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface Transaction {
+  id: number;
+  date: string;
+  type: string;
+  amount: number;
+  description: string;
+  created_at: string;
 }

@@ -1,0 +1,39 @@
+Buatkan aplikasi web modern bernama "MOTUBU" menggunakan React (Vite), Tailwind CSS, dan komponen shadcn/ui.
+
+ATURAN KRITIS:
+1. Gunakan Supabase (PostgreSQL) sebagai database. Aktifkan fitur real-time supaya data tersinkronisasi otomatis antar perangkat.
+2. SELURUH tampilan antarmuka (UI) WAJIB berbahasa Indonesia.
+3. Desain JANGAN pakai Sidebar. Pakai "Header Dua Tingkat" ala Amazon.
+   - Baris Atas: Logo "MOTUBU", Search Bar Besar, Status User.
+   - Baris Bawah: Menu Navigasi Lengket (Sticky) dengan urutan persis ini:
+     [Dashboard] [Simulasi] [Stok] [Kasir] [Backorder] [Share Produk] [Hutang Bank] [Pengeluaran] [Arus Kas] [Riwayat] [Reseller] [Pengaturan]
+4. Semua Form Input (Tambah/Edit Data) WAJIB berbentuk POPUP (MODAL), jangan pindah halaman.
+5. Sistem Login: Admin (Kode akses: '88040773') dan Reseller (tabel database).
+
+STRUKTUR DATABASE (Supabase) - Buat tabel ini:
+1. `products`: id, name, variant, supplier_name, image_url, cost_price, selling_price, stock_qty, created_at.
+2. `simulation_orders`: id, supplier_name, total_cost, items (jsonb), adjustments (jsonb), status ('draft'/'committed').
+3. `bank_debts`: id, bank_name, principal_amount, interest_amount, paid_amount, status.
+4. `owner_drawings`: id, description, amount, date (Untuk catat pengambilan pribadi/piutang).
+5. `transactions`: id, date, type, amount, description.
+
+LOGIKA FITUR TAHAP 1:
+1. Dashboard:
+   - Tampilkan Kartu Status: Nilai Stok, Omzet (dari transactions), Hutang Bank (total bank_debts), Pengambilan Pribadi (total owner_drawings).
+2. Modul Stok:
+   - Tampilkan daftar produk dalam bentuk GRID (Foto + Nama + Harga).
+   - Tombol "Tambah Stok": Buka MODAL form input produk.
+   - Tombol "Edit/Hapus" per item juga lewat MODAL.
+3. Modul Simulasi Order (PENTING):
+   - Halaman untuk merencanakan order sebelum beli.
+   - User input Nama Supplier, Daftar Produk, dan Biaya Tambahan (Ongkir, dll).
+   - Sistem hitung total estimasi biaya.
+   - Ada tombol "Simulasi Baru" dan tombol aksi "Simpan ke Stok" (Hanya mengubah status simulasi dan memindahkan data ke tabel `products` untuk menambah stok).
+4. Manajemen Hutang Bank:
+   - Input Hutang lewat MODAL (Nama Bank, Jumlah Pinjaman, Bunga).
+5. Catat Pengambilan Pribadi (Piutang):
+   - Input lewat MODAL (Keterangan, Jumlah).
+
+Catatan: Untuk menu [Kasir], [Backorder], [Share Produk], [Pengeluaran], [Arus Kas], [Riwayat], [Reseller], [Pengaturan] buatkan tombol di navigasi, tapi isinya kosong (placeholder) dulu. Fokus utama pada Dashboard, Stok, Simulasi, dan Database Setup.
+
+Mulai buat struktur dasar, koneksi Supabase, dan fitur-fitur di atas sekarang.

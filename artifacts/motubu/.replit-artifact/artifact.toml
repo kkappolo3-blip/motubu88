@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "MOTUBU"
+version = "1.0.0"
+id = "artifacts/motubu"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21933
+
+[services.development]
+run = "pnpm --filter @workspace/motubu run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/motubu", "run", "build" ]
+publicDir = "artifacts/motubu/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21933"
+BASE_PATH = "/"

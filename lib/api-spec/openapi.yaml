@@ -3,13 +3,26 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: MOTUBU Business Management API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: products
+    description: Product stock operations
+  - name: simulations
+    description: Order simulation operations
+  - name: bank-debts
+    description: Bank debt management
+  - name: owner-drawings
+    description: Owner personal drawings/withdrawals
+  - name: transactions
+    description: Financial transaction records
+  - name: dashboard
+    description: Dashboard summary operations
+
 paths:
   /healthz:
     get:
@@ -24,6 +37,387 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /products:
+    get:
+      operationId: listProducts
+      tags: [products]
+      summary: List all products
+      responses:
+        "200":
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+    post:
+      operationId: createProduct
+      tags: [products]
+      summary: Create a new product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductInput"
+      responses:
+        "201":
+          description: Product created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+
+  /products/{id}:
+    get:
+      operationId: getProduct
+      tags: [products]
+      summary: Get a product by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Product found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "404":
+          description: Product not found
+    patch:
+      operationId: updateProduct
+      tags: [products]
+      summary: Update a product
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductUpdate"
+      responses:
+        "200":
+          description: Product updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+    delete:
+      operationId: deleteProduct
+      tags: [products]
+      summary: Delete a product
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Product deleted
+
+  /simulations:
+    get:
+      operationId: listSimulations
+      tags: [simulations]
+      summary: List all order simulations
+      responses:
+        "200":
+          description: List of simulations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Simulation"
+    post:
+      operationId: createSimulation
+      tags: [simulations]
+      summary: Create a new order simulation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SimulationInput"
+      responses:
+        "201":
+          description: Simulation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Simulation"
+
+  /simulations/{id}:
+    get:
+      operationId: getSimulation
+      tags: [simulations]
+      summary: Get a simulation by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Simulation found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Simulation"
+    patch:
+      operationId: updateSimulation
+      tags: [simulations]
+      summary: Update a simulation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SimulationUpdate"
+      responses:
+        "200":
+          description: Simulation updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Simulation"
+    delete:
+      operationId: deleteSimulation
+      tags: [simulations]
+      summary: Delete a simulation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Simulation deleted
+
+  /simulations/{id}/commit:
+    post:
+      operationId: commitSimulation
+      tags: [simulations]
+      summary: Commit simulation - move items to stock
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Simulation committed and stock updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Simulation"
+
+  /bank-debts:
+    get:
+      operationId: listBankDebts
+      tags: [bank-debts]
+      summary: List all bank debts
+      responses:
+        "200":
+          description: List of bank debts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BankDebt"
+    post:
+      operationId: createBankDebt
+      tags: [bank-debts]
+      summary: Create a bank debt record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BankDebtInput"
+      responses:
+        "201":
+          description: Bank debt created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BankDebt"
+
+  /bank-debts/{id}:
+    patch:
+      operationId: updateBankDebt
+      tags: [bank-debts]
+      summary: Update a bank debt
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BankDebtUpdate"
+      responses:
+        "200":
+          description: Bank debt updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BankDebt"
+    delete:
+      operationId: deleteBankDebt
+      tags: [bank-debts]
+      summary: Delete a bank debt
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Bank debt deleted
+
+  /owner-drawings:
+    get:
+      operationId: listOwnerDrawings
+      tags: [owner-drawings]
+      summary: List all owner drawings
+      responses:
+        "200":
+          description: List of owner drawings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OwnerDrawing"
+    post:
+      operationId: createOwnerDrawing
+      tags: [owner-drawings]
+      summary: Record an owner drawing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OwnerDrawingInput"
+      responses:
+        "201":
+          description: Owner drawing created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerDrawing"
+
+  /owner-drawings/{id}:
+    patch:
+      operationId: updateOwnerDrawing
+      tags: [owner-drawings]
+      summary: Update an owner drawing
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OwnerDrawingUpdate"
+      responses:
+        "200":
+          description: Owner drawing updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerDrawing"
+    delete:
+      operationId: deleteOwnerDrawing
+      tags: [owner-drawings]
+      summary: Delete an owner drawing
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Owner drawing deleted
+
+  /transactions:
+    get:
+      operationId: listTransactions
+      tags: [transactions]
+      summary: List all transactions
+      responses:
+        "200":
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Transaction"
+    post:
+      operationId: createTransaction
+      tags: [transactions]
+      summary: Create a transaction record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransactionInput"
+      responses:
+        "201":
+          description: Transaction created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get dashboard summary statistics
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +428,274 @@ components:
       required:
         - status
 
+    Product:
+      type: object
+      required: [id, name, cost_price, selling_price, stock_qty, created_at]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        variant:
+          type: ["string", "null"]
+        supplier_name:
+          type: ["string", "null"]
+        image_url:
+          type: ["string", "null"]
+        cost_price:
+          type: number
+        selling_price:
+          type: number
+        stock_qty:
+          type: integer
+        created_at:
+          type: string
+
+    ProductInput:
+      type: object
+      required: [name, cost_price, selling_price, stock_qty]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        variant:
+          type: ["string", "null"]
+        supplier_name:
+          type: ["string", "null"]
+        image_url:
+          type: ["string", "null"]
+        cost_price:
+          type: number
+        selling_price:
+          type: number
+        stock_qty:
+          type: integer
+
+    ProductUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        variant:
+          type: ["string", "null"]
+        supplier_name:
+          type: ["string", "null"]
+        image_url:
+          type: ["string", "null"]
+        cost_price:
+          type: number
+        selling_price:
+          type: number
+        stock_qty:
+          type: integer
+
+    SimulationItem:
+      type: object
+      required: [product_name, quantity, unit_price]
+      properties:
+        product_name:
+          type: string
+        variant:
+          type: ["string", "null"]
+        quantity:
+          type: integer
+        unit_price:
+          type: number
+
+    SimulationAdjustment:
+      type: object
+      required: [label, amount]
+      properties:
+        label:
+          type: string
+        amount:
+          type: number
+
+    Simulation:
+      type: object
+      required: [id, supplier_name, total_cost, items, adjustments, status, created_at]
+      properties:
+        id:
+          type: integer
+        supplier_name:
+          type: string
+        total_cost:
+          type: number
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/SimulationItem"
+        adjustments:
+          type: array
+          items:
+            $ref: "#/components/schemas/SimulationAdjustment"
+        status:
+          type: string
+          enum: [draft, committed]
+        created_at:
+          type: string
+
+    SimulationInput:
+      type: object
+      required: [supplier_name, items]
+      properties:
+        supplier_name:
+          type: string
+          minLength: 1
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/SimulationItem"
+        adjustments:
+          type: array
+          items:
+            $ref: "#/components/schemas/SimulationAdjustment"
+
+    SimulationUpdate:
+      type: object
+      properties:
+        supplier_name:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/SimulationItem"
+        adjustments:
+          type: array
+          items:
+            $ref: "#/components/schemas/SimulationAdjustment"
+        status:
+          type: string
+          enum: [draft, committed]
+
+    BankDebt:
+      type: object
+      required: [id, bank_name, principal_amount, interest_amount, paid_amount, status, created_at]
+      properties:
+        id:
+          type: integer
+        bank_name:
+          type: string
+        principal_amount:
+          type: number
+        interest_amount:
+          type: number
+        paid_amount:
+          type: number
+        status:
+          type: string
+        created_at:
+          type: string
+
+    BankDebtInput:
+      type: object
+      required: [bank_name, principal_amount, interest_amount]
+      properties:
+        bank_name:
+          type: string
+          minLength: 1
+        principal_amount:
+          type: number
+        interest_amount:
+          type: number
+        paid_amount:
+          type: number
+
+    BankDebtUpdate:
+      type: object
+      properties:
+        bank_name:
+          type: string
+        principal_amount:
+          type: number
+        interest_amount:
+          type: number
+        paid_amount:
+          type: number
+        status:
+          type: string
+
+    OwnerDrawing:
+      type: object
+      required: [id, description, amount, date, created_at]
+      properties:
+        id:
+          type: integer
+        description:
+          type: string
+        amount:
+          type: number
+        date:
+          type: string
+        created_at:
+          type: string
+
+    OwnerDrawingInput:
+      type: object
+      required: [description, amount, date]
+      properties:
+        description:
+          type: string
+          minLength: 1
+        amount:
+          type: number
+        date:
+          type: string
+
+    OwnerDrawingUpdate:
+      type: object
+      properties:
+        description:
+          type: string
+        amount:
+          type: number
+        date:
+          type: string
+
+    Transaction:
+      type: object
+      required: [id, date, type, amount, description, created_at]
+      properties:
+        id:
+          type: integer
+        date:
+          type: string
+        type:
+          type: string
+        amount:
+          type: number
+        description:
+          type: string
+        created_at:
+          type: string
+
+    TransactionInput:
+      type: object
+      required: [date, type, amount, description]
+      properties:
+        date:
+          type: string
+        type:
+          type: string
+        amount:
+          type: number
+        description:
+          type: string
+
+    DashboardSummary:
+      type: object
+      required: [stock_value, revenue, total_bank_debt, total_owner_drawings, product_count, low_stock_count]
+      properties:
+        stock_value:
+          type: number
+        revenue:
+          type: number
+        total_bank_debt:
+          type: number
+        total_owner_drawings:
+          type: number
+        product_count:
+          type: integer
+        low_stock_count:
+          type: integer
