@@ -1,0 +1,42 @@
+Lanjutkan pengembangan aplikasi MOTUBU. Fokus pada pembuatan Modul KASIR (POS) dan MANAJEMEN CICILAN.
+
+ATURAN UMUM:
+1. Semua form input (Input Pelanggan, Input Bayar) WAJIB berupa POPUP (MODAL), bukan pindah halaman.
+2. Gunakan Bahasa Indonesia untuk semua UI.
+3. Pastikan data tersimpan ke tabel Supabase/Postgres.
+
+MODUL 1: KASIR (POINT OF SALE)
+1. Layout Layar Kasir:
+   - Bagian KIRI (70%): Grid Daftar Produk (Foto, Nama, Harga).
+   - Bagian KANAN (30%): Panel Keranjang (Cart) yang Sticky (tetap terlihat saat scroll).
+2. Logika Keranjang:
+   - Klik Produk di Kiri -> Masuk ke Keranjang di Kanan.
+   - Di dalam Keranjang, User bisa mengubah Jumlah (Qty).
+   - **FITUR PENTING:** User bisa MENGEDIT HARGA JUAL PER ITEM (untuk menawar). Tambahkan input field harga di setiap baris keranjang.
+3. Proses Checkout:
+   - Klik tombol "Bayar" di panel kanan -> Muncul MODAL.
+   - Di dalam Modal ada pilihan metode: [Bayar Lunas] atau [Cicil].
+   - Jika pilih [Bayar Lunas]: Simpan transaksi, kurangi stok, selesai.
+   - Jika pilih [Cicil]: Muncul form tambahan "Nama Pelanggan". Simpan transaksi, kurangi stok, dan buat data cicilan baru.
+
+MODUL 2: MANAJEMEN CICILAN
+1. Tampilan Daftar (Grid):
+   - Tampilkan Grid Kartu Pelanggan yang sedang mencicil.
+   - Info di kartu: Nama Pelanggan, Total Hutang, Sudah Dibayar, Sisa, Progress Bar.
+2. Detail & Pembayaran:
+   - Klik Kartu Pelanggan -> Buka MODAL DETAIL.
+   - Isi Modal Detail:
+     - Info Pelanggan & Tanggal Cicilan Mulai.
+     - Daftar Barang yang dicicil.
+     - **Timeline Visual:** Garis waktu vertikal atau horizontal menunjukkan riwayat pembayaran.
+     - Tabel Riwayat Pembayaran (Tanggal, Jumlah).
+     - Form Input: "Bayar Cicilan Sekarang" (Input Jumlah Uang).
+     - Tombol Aksi: Simpan Pembayaran.
+   - Logika: Saat simpan pembayaran, update total terbayar. Jika lunas, ubah status jadi "Lunas".
+
+UPDATE DATABASE:
+1. Pastikan ada tabel `installments`:
+   - id, customer_name, total_amount, paid_amount, status, items (jsonb), created_at.
+2. Pastikan tabel `transactions` terhubung. Jika tipe transaksi 'cicilan', catat ID cicilan-nya.
+
+Mulai coding sekarang. Pastikan fitur "Edit Harga di Keranjang" dan "Bayar Cicilan" berjalan mulus.

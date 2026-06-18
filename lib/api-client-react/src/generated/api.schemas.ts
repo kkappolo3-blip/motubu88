@@ -168,6 +168,70 @@ export interface TransactionInput {
   description: string;
 }
 
+export interface KasirCartItem {
+  product_id: number;
+  product_name: string;
+  /** @nullable */
+  variant?: string | null;
+  qty: number;
+  custom_price: number;
+}
+
+export type KasirCheckoutInputPaymentMethod = typeof KasirCheckoutInputPaymentMethod[keyof typeof KasirCheckoutInputPaymentMethod];
+
+
+export const KasirCheckoutInputPaymentMethod = {
+  lunas: 'lunas',
+  cicilan: 'cicilan',
+} as const;
+
+export interface KasirCheckoutInput {
+  items: KasirCartItem[];
+  payment_method: KasirCheckoutInputPaymentMethod;
+  /** @nullable */
+  customer_name?: string | null;
+}
+
+export interface KasirCheckoutResult {
+  transaction_id: number;
+  /** @nullable */
+  installment_id?: number | null;
+  total_amount: number;
+  payment_method: string;
+}
+
+export interface InstallmentPayment {
+  date: string;
+  amount: number;
+  /** @nullable */
+  note?: string | null;
+}
+
+export type InstallmentStatus = typeof InstallmentStatus[keyof typeof InstallmentStatus];
+
+
+export const InstallmentStatus = {
+  active: 'active',
+  lunas: 'lunas',
+} as const;
+
+export interface Installment {
+  id: number;
+  customer_name: string;
+  total_amount: number;
+  paid_amount: number;
+  status: InstallmentStatus;
+  items: KasirCartItem[];
+  payments: InstallmentPayment[];
+  created_at: string;
+}
+
+export interface InstallmentPaymentInput {
+  amount: number;
+  /** @nullable */
+  note?: string | null;
+}
+
 export interface DashboardSummary {
   stock_value: number;
   revenue: number;

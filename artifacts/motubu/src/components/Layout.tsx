@@ -10,6 +10,7 @@ const navItems = [
   { label: "Simulasi", path: "/simulasi" },
   { label: "Stok", path: "/stok" },
   { label: "Kasir", path: "/kasir" },
+  { label: "Cicilan", path: "/cicilan" },
   { label: "Backorder", path: "/backorder" },
   { label: "Share Produk", path: "/share-produk" },
   { label: "Hutang Bank", path: "/hutang-bank" },

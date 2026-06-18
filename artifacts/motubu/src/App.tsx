@@ -9,6 +9,8 @@ import DashboardPage from "@/pages/DashboardPage";
 import StokPage from "@/pages/StokPage";
 import SimulasiPage from "@/pages/SimulasiPage";
 import HutangBankPage from "@/pages/HutangBankPage";
+import KasirPage from "@/pages/KasirPage";
+import CicilanPage from "@/pages/CicilanPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 import NotFound from "@/pages/not-found";
 
@@ -69,7 +71,7 @@ function AppRoutes() {
       <Route path="/kasir">
         {() => (
           <AuthGuard>
-            <Layout><PlaceholderPage title="Kasir" /></Layout>
+            <Layout><KasirPage /></Layout>
           </AuthGuard>
         )}
       </Route>
@@ -110,6 +112,14 @@ function AppRoutes() {
         {() => (
           <AuthGuard>
             <Layout><PlaceholderPage title="Riwayat" /></Layout>
+          </AuthGuard>
+        )}
+      </Route>
+
+      <Route path="/cicilan">
+        {() => (
+          <AuthGuard>
+            <Layout><CicilanPage /></Layout>
           </AuthGuard>
         )}
       </Route>

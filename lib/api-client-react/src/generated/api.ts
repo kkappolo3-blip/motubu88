@@ -25,6 +25,10 @@ import type {
   BankDebtUpdate,
   DashboardSummary,
   HealthStatus,
+  Installment,
+  InstallmentPaymentInput,
+  KasirCheckoutInput,
+  KasirCheckoutResult,
   OwnerDrawing,
   OwnerDrawingInput,
   OwnerDrawingUpdate,
@@ -1658,6 +1662,303 @@ export const useCreateTransaction = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateTransactionMutationOptions(options));
+    }
+
+export const getKasirCheckoutUrl = () => {
+
+
+
+
+  return `/api/kasir/checkout`
+}
+
+/**
+ * @summary Process a sale checkout (tunai or cicilan)
+ */
+export const kasirCheckout = async (kasirCheckoutInput: KasirCheckoutInput, options?: RequestInit): Promise<KasirCheckoutResult> => {
+
+  return customFetch<KasirCheckoutResult>(getKasirCheckoutUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      kasirCheckoutInput,)
+  }
+);}
+
+
+
+
+export const getKasirCheckoutMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kasirCheckout>>, TError,{data: BodyType<KasirCheckoutInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof kasirCheckout>>, TError,{data: BodyType<KasirCheckoutInput>}, TContext> => {
+
+const mutationKey = ['kasirCheckout'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof kasirCheckout>>, {data: BodyType<KasirCheckoutInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  kasirCheckout(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type KasirCheckoutMutationResult = NonNullable<Awaited<ReturnType<typeof kasirCheckout>>>
+    export type KasirCheckoutMutationBody = BodyType<KasirCheckoutInput>
+    export type KasirCheckoutMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Process a sale checkout (tunai or cicilan)
+ */
+export const useKasirCheckout = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof kasirCheckout>>, TError,{data: BodyType<KasirCheckoutInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof kasirCheckout>>,
+        TError,
+        {data: BodyType<KasirCheckoutInput>},
+        TContext
+      > => {
+      return useMutation(getKasirCheckoutMutationOptions(options));
+    }
+
+export const getListInstallmentsUrl = () => {
+
+
+
+
+  return `/api/installments`
+}
+
+/**
+ * @summary List all installments
+ */
+export const listInstallments = async ( options?: RequestInit): Promise<Installment[]> => {
+
+  return customFetch<Installment[]>(getListInstallmentsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListInstallmentsQueryKey = () => {
+    return [
+    `/api/installments`
+    ] as const;
+    }
+
+
+export const getListInstallmentsQueryOptions = <TData = Awaited<ReturnType<typeof listInstallments>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listInstallments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListInstallmentsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listInstallments>>> = ({ signal }) => listInstallments({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listInstallments>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListInstallmentsQueryResult = NonNullable<Awaited<ReturnType<typeof listInstallments>>>
+export type ListInstallmentsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List all installments
+ */
+
+export function useListInstallments<TData = Awaited<ReturnType<typeof listInstallments>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listInstallments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListInstallmentsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetInstallmentUrl = (id: number,) => {
+
+
+
+
+  return `/api/installments/${id}`
+}
+
+/**
+ * @summary Get an installment by ID
+ */
+export const getInstallment = async (id: number, options?: RequestInit): Promise<Installment> => {
+
+  return customFetch<Installment>(getGetInstallmentUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetInstallmentQueryKey = (id: number,) => {
+    return [
+    `/api/installments/${id}`
+    ] as const;
+    }
+
+
+export const getGetInstallmentQueryOptions = <TData = Awaited<ReturnType<typeof getInstallment>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInstallment>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetInstallmentQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getInstallment>>> = ({ signal }) => getInstallment(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getInstallment>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetInstallmentQueryResult = NonNullable<Awaited<ReturnType<typeof getInstallment>>>
+export type GetInstallmentQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get an installment by ID
+ */
+
+export function useGetInstallment<TData = Awaited<ReturnType<typeof getInstallment>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInstallment>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetInstallmentQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getAddInstallmentPaymentUrl = (id: number,) => {
+
+
+
+
+  return `/api/installments/${id}/payment`
+}
+
+/**
+ * @summary Record a payment for an installment
+ */
+export const addInstallmentPayment = async (id: number,
+    installmentPaymentInput: InstallmentPaymentInput, options?: RequestInit): Promise<Installment> => {
+
+  return customFetch<Installment>(getAddInstallmentPaymentUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      installmentPaymentInput,)
+  }
+);}
+
+
+
+
+export const getAddInstallmentPaymentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addInstallmentPayment>>, TError,{id: number;data: BodyType<InstallmentPaymentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addInstallmentPayment>>, TError,{id: number;data: BodyType<InstallmentPaymentInput>}, TContext> => {
+
+const mutationKey = ['addInstallmentPayment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addInstallmentPayment>>, {id: number;data: BodyType<InstallmentPaymentInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  addInstallmentPayment(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddInstallmentPaymentMutationResult = NonNullable<Awaited<ReturnType<typeof addInstallmentPayment>>>
+    export type AddInstallmentPaymentMutationBody = BodyType<InstallmentPaymentInput>
+    export type AddInstallmentPaymentMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Record a payment for an installment
+ */
+export const useAddInstallmentPayment = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addInstallmentPayment>>, TError,{id: number;data: BodyType<InstallmentPaymentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof addInstallmentPayment>>,
+        TError,
+        {id: number;data: BodyType<InstallmentPaymentInput>},
+        TContext
+      > => {
+      return useMutation(getAddInstallmentPaymentMutationOptions(options));
     }
 
 export const getGetDashboardSummaryUrl = () => {

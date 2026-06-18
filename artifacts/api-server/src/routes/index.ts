@@ -6,6 +6,8 @@ import bankDebtsRouter from "./bank-debts";
 import ownerDrawingsRouter from "./owner-drawings";
 import transactionsRouter from "./transactions";
 import dashboardRouter from "./dashboard";
+import kasirRouter from "./kasir";
+import installmentsRouter from "./installments";
 
 const router: IRouter = Router();
 
@@ -16,5 +18,7 @@ router.use(bankDebtsRouter);
 router.use(ownerDrawingsRouter);
 router.use(transactionsRouter);
 router.use(dashboardRouter);
+router.use(kasirRouter);
+router.use(installmentsRouter);
 
 export default router;

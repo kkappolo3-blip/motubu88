@@ -402,6 +402,111 @@ export const CreateTransactionBody = zod.object({
 
 
 /**
+ * @summary Process a sale checkout (tunai or cicilan)
+ */
+export const KasirCheckoutBody = zod.object({
+  "items": zod.array(zod.object({
+  "product_id": zod.number(),
+  "product_name": zod.string(),
+  "variant": zod.string().nullish(),
+  "qty": zod.number(),
+  "custom_price": zod.number()
+})),
+  "payment_method": zod.enum(['lunas', 'cicilan']),
+  "customer_name": zod.string().nullish()
+})
+
+
+/**
+ * @summary List all installments
+ */
+export const ListInstallmentsResponseItem = zod.object({
+  "id": zod.number(),
+  "customer_name": zod.string(),
+  "total_amount": zod.number(),
+  "paid_amount": zod.number(),
+  "status": zod.enum(['active', 'lunas']),
+  "items": zod.array(zod.object({
+  "product_id": zod.number(),
+  "product_name": zod.string(),
+  "variant": zod.string().nullish(),
+  "qty": zod.number(),
+  "custom_price": zod.number()
+})),
+  "payments": zod.array(zod.object({
+  "date": zod.string(),
+  "amount": zod.number(),
+  "note": zod.string().nullish()
+})),
+  "created_at": zod.string()
+})
+export const ListInstallmentsResponse = zod.array(ListInstallmentsResponseItem)
+
+
+/**
+ * @summary Get an installment by ID
+ */
+export const GetInstallmentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetInstallmentResponse = zod.object({
+  "id": zod.number(),
+  "customer_name": zod.string(),
+  "total_amount": zod.number(),
+  "paid_amount": zod.number(),
+  "status": zod.enum(['active', 'lunas']),
+  "items": zod.array(zod.object({
+  "product_id": zod.number(),
+  "product_name": zod.string(),
+  "variant": zod.string().nullish(),
+  "qty": zod.number(),
+  "custom_price": zod.number()
+})),
+  "payments": zod.array(zod.object({
+  "date": zod.string(),
+  "amount": zod.number(),
+  "note": zod.string().nullish()
+})),
+  "created_at": zod.string()
+})
+
+
+/**
+ * @summary Record a payment for an installment
+ */
+export const AddInstallmentPaymentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const AddInstallmentPaymentBody = zod.object({
+  "amount": zod.number(),
+  "note": zod.string().nullish()
+})
+
+export const AddInstallmentPaymentResponse = zod.object({
+  "id": zod.number(),
+  "customer_name": zod.string(),
+  "total_amount": zod.number(),
+  "paid_amount": zod.number(),
+  "status": zod.enum(['active', 'lunas']),
+  "items": zod.array(zod.object({
+  "product_id": zod.number(),
+  "product_name": zod.string(),
+  "variant": zod.string().nullish(),
+  "qty": zod.number(),
+  "custom_price": zod.number()
+})),
+  "payments": zod.array(zod.object({
+  "date": zod.string(),
+  "amount": zod.number(),
+  "note": zod.string().nullish()
+})),
+  "created_at": zod.string()
+})
+
+
+/**
  * @summary Get dashboard summary statistics
  */
 export const GetDashboardSummaryResponse = zod.object({

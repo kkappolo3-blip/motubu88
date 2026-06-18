@@ -64,8 +64,24 @@ export const transactionsTable = pgTable("transactions", {
   type: text("type").notNull(),
   amount: numeric("amount", { precision: 15, scale: 2 }).notNull(),
   description: text("description").notNull(),
+  installment_id: integer("installment_id"),
   created_at: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const installmentsTable = pgTable("installments", {
+  id: serial("id").primaryKey(),
+  customer_name: text("customer_name").notNull(),
+  total_amount: numeric("total_amount", { precision: 15, scale: 2 }).notNull(),
+  paid_amount: numeric("paid_amount", { precision: 15, scale: 2 }).notNull().default("0"),
+  status: text("status").notNull().default("active"),
+  items: jsonb("items").notNull().default([]),
+  payments: jsonb("payments").notNull().default([]),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertInstallmentSchema = createInsertSchema(installmentsTable).omit({ id: true, created_at: true });
+export type InsertInstallment = z.infer<typeof insertInstallmentSchema>;
+export type Installment = typeof installmentsTable.$inferSelect;
 
 export const insertTransactionSchema = createInsertSchema(transactionsTable).omit({ id: true, created_at: true });
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
