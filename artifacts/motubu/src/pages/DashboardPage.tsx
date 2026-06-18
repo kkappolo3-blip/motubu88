@@ -1,10 +1,14 @@
 import { useGetDashboardSummary, getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { formatRupiah } from "@/lib/format";
 import { Package, TrendingUp, Landmark, Wallet, AlertTriangle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function DashboardPage() {
+  const queryClient = useQueryClient();
+  const queryKey = getGetDashboardSummaryQueryKey();
   const { data, isLoading, error } = useGetDashboardSummary({
-    query: { queryKey: getGetDashboardSummaryQueryKey() },
+    query: { queryKey },
   });
 
   if (isLoading) {
@@ -25,9 +29,23 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <div className="flex items-center gap-3 text-destructive bg-destructive/10 rounded-lg p-4">
-        <AlertTriangle className="w-5 h-5 shrink-0" />
-        <span className="text-sm font-medium">Gagal memuat data dashboard.</span>
+      <div className="flex flex-col gap-3">
+        <h2 className="text-xl font-bold text-foreground">Dashboard</h2>
+        <div className="flex items-center justify-between bg-destructive/10 rounded-lg p-4">
+          <div className="flex items-center gap-3 text-destructive">
+            <AlertTriangle className="w-5 h-5 shrink-0" />
+            <span className="text-sm font-medium">Gagal memuat data dashboard.</span>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={() => queryClient.invalidateQueries({ queryKey })}
+          >
+            <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+            Coba Lagi
+          </Button>
+        </div>
       </div>
     );
   }
