@@ -1,20 +1,7 @@
-import pino from "pino";
-
-const isProduction = process.env.NODE_ENV === "production";
-
-export const logger = pino({
-  level: process.env.LOG_LEVEL ?? "info",
-  redact: [
-    "req.headers.authorization",
-    "req.headers.cookie",
-    "res.headers['set-cookie']",
-  ],
-  ...(isProduction
-    ? {}
-    : {
-        transport: {
-          target: "pino-pretty",
-          options: { colorize: true },
-        },
-      }),
-});
+// Lightweight console-based logger — compatible with both Node.js and Cloudflare Workers.
+export const logger = {
+  info: (obj: unknown, msg?: string) => console.info(msg ?? "", obj),
+  error: (obj: unknown, msg?: string) => console.error(msg ?? "", obj),
+  warn: (obj: unknown, msg?: string) => console.warn(msg ?? "", obj),
+  debug: (obj: unknown, msg?: string) => console.debug(msg ?? "", obj),
+};

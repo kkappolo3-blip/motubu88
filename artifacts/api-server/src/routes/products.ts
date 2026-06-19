@@ -1,6 +1,5 @@
-import { Router } from "express";
-import { db, productsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { Hono } from "hono";
+import { db, productsTable, eq } from "@workspace/db";
 import {
   CreateProductBody,
   UpdateProductBody,
@@ -9,24 +8,23 @@ import {
   DeleteProductParams,
 } from "@workspace/api-zod";
 
-const router = Router();
+const router = new Hono();
 
-router.get("/products", async (req, res) => {
+router.get("/products", async (c) => {
   try {
     const products = await db.select().from(productsTable).orderBy(productsTable.created_at);
-    res.json(products.map(serializeProduct));
+    return c.json(products.map(serializeProduct));
   } catch (err) {
-    req.log.error({ err }, "Failed to list products");
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Failed to list products", err);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
-router.post("/products", async (req, res) => {
-  const parsed = CreateProductBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
+router.post("/products", async (c) => {
+  let body: unknown;
+  try { body = await c.req.json(); } catch { return c.json({ error: "Invalid JSON" }, 400); }
+  const parsed = CreateProductBody.safeParse(body);
+  if (!parsed.success) return c.json({ error: parsed.error.message }, 400);
   try {
     const [product] = await db.insert(productsTable).values({
       name: parsed.data.name,
@@ -37,73 +35,60 @@ router.post("/products", async (req, res) => {
       selling_price: String(parsed.data.selling_price),
       stock_qty: parsed.data.stock_qty,
     }).returning();
-    res.status(201).json(serializeProduct(product));
+    return c.json(serializeProduct(product), 201);
   } catch (err) {
-    req.log.error({ err }, "Failed to create product");
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Failed to create product", err);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
-router.get("/products/:id", async (req, res) => {
-  const params = GetProductParams.safeParse({ id: Number(req.params.id) });
-  if (!params.success) {
-    res.status(400).json({ error: "Invalid id" });
-    return;
-  }
+router.get("/products/:id", async (c) => {
+  const params = GetProductParams.safeParse({ id: Number(c.req.param("id")) });
+  if (!params.success) return c.json({ error: "Invalid id" }, 400);
   try {
     const [product] = await db.select().from(productsTable).where(eq(productsTable.id, params.data.id));
-    if (!product) {
-      res.status(404).json({ error: "Product not found" });
-      return;
-    }
-    res.json(serializeProduct(product));
+    if (!product) return c.json({ error: "Product not found" }, 404);
+    return c.json(serializeProduct(product));
   } catch (err) {
-    req.log.error({ err }, "Failed to get product");
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Failed to get product", err);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
-router.patch("/products/:id", async (req, res) => {
-  const params = UpdateProductParams.safeParse({ id: Number(req.params.id) });
-  const body = UpdateProductBody.safeParse(req.body);
-  if (!params.success || !body.success) {
-    res.status(400).json({ error: "Invalid request" });
-    return;
-  }
+router.patch("/products/:id", async (c) => {
+  const params = UpdateProductParams.safeParse({ id: Number(c.req.param("id")) });
+  if (!params.success) return c.json({ error: "Invalid id" }, 400);
+  let body: unknown;
+  try { body = await c.req.json(); } catch { return c.json({ error: "Invalid JSON" }, 400); }
+  const bodyParsed = UpdateProductBody.safeParse(body);
+  if (!bodyParsed.success) return c.json({ error: "Invalid request" }, 400);
   try {
     const updates: Record<string, unknown> = {};
-    if (body.data.name !== undefined) updates.name = body.data.name;
-    if (body.data.variant !== undefined) updates.variant = body.data.variant;
-    if (body.data.supplier_name !== undefined) updates.supplier_name = body.data.supplier_name;
-    if (body.data.image_url !== undefined) updates.image_url = body.data.image_url;
-    if (body.data.cost_price !== undefined) updates.cost_price = String(body.data.cost_price);
-    if (body.data.selling_price !== undefined) updates.selling_price = String(body.data.selling_price);
-    if (body.data.stock_qty !== undefined) updates.stock_qty = body.data.stock_qty;
-
+    if (bodyParsed.data.name !== undefined) updates.name = bodyParsed.data.name;
+    if (bodyParsed.data.variant !== undefined) updates.variant = bodyParsed.data.variant;
+    if (bodyParsed.data.supplier_name !== undefined) updates.supplier_name = bodyParsed.data.supplier_name;
+    if (bodyParsed.data.image_url !== undefined) updates.image_url = bodyParsed.data.image_url;
+    if (bodyParsed.data.cost_price !== undefined) updates.cost_price = String(bodyParsed.data.cost_price);
+    if (bodyParsed.data.selling_price !== undefined) updates.selling_price = String(bodyParsed.data.selling_price);
+    if (bodyParsed.data.stock_qty !== undefined) updates.stock_qty = bodyParsed.data.stock_qty;
     const [product] = await db.update(productsTable).set(updates).where(eq(productsTable.id, params.data.id)).returning();
-    if (!product) {
-      res.status(404).json({ error: "Product not found" });
-      return;
-    }
-    res.json(serializeProduct(product));
+    if (!product) return c.json({ error: "Product not found" }, 404);
+    return c.json(serializeProduct(product));
   } catch (err) {
-    req.log.error({ err }, "Failed to update product");
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Failed to update product", err);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
-router.delete("/products/:id", async (req, res) => {
-  const params = DeleteProductParams.safeParse({ id: Number(req.params.id) });
-  if (!params.success) {
-    res.status(400).json({ error: "Invalid id" });
-    return;
-  }
+router.delete("/products/:id", async (c) => {
+  const params = DeleteProductParams.safeParse({ id: Number(c.req.param("id")) });
+  if (!params.success) return c.json({ error: "Invalid id" }, 400);
   try {
     await db.delete(productsTable).where(eq(productsTable.id, params.data.id));
-    res.status(204).send();
+    return c.body(null, 204);
   } catch (err) {
-    req.log.error({ err }, "Failed to delete product");
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Failed to delete product", err);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 

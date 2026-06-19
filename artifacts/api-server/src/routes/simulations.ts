@@ -1,6 +1,5 @@
-import { Router } from "express";
-import { db, simulationOrdersTable, productsTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { Hono } from "hono";
+import { db, simulationOrdersTable, productsTable, eq, sql } from "@workspace/db";
 import {
   CreateSimulationBody,
   UpdateSimulationBody,
@@ -10,11 +9,11 @@ import {
   CommitSimulationParams,
 } from "@workspace/api-zod";
 
-const router = Router();
+const router = new Hono();
 
 function calcTotal(
   items: Array<{ quantity: number; unit_price: number }>,
-  adjustments: Array<{ amount: number }>
+  adjustments: Array<{ amount: number }>,
 ): number {
   const itemTotal = items.reduce((sum, i) => sum + i.quantity * i.unit_price, 0);
   const adjTotal = adjustments.reduce((sum, a) => sum + a.amount, 0);
@@ -33,22 +32,21 @@ function serializeSim(s: typeof simulationOrdersTable.$inferSelect) {
   };
 }
 
-router.get("/simulations", async (req, res) => {
+router.get("/simulations", async (c) => {
   try {
     const sims = await db.select().from(simulationOrdersTable).orderBy(simulationOrdersTable.created_at);
-    res.json(sims.map(serializeSim));
+    return c.json(sims.map(serializeSim));
   } catch (err) {
-    req.log.error({ err }, "Failed to list simulations");
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Failed to list simulations", err);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
-router.post("/simulations", async (req, res) => {
-  const parsed = CreateSimulationBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
+router.post("/simulations", async (c) => {
+  let body: unknown;
+  try { body = await c.req.json(); } catch { return c.json({ error: "Invalid JSON" }, 400); }
+  const parsed = CreateSimulationBody.safeParse(body);
+  if (!parsed.success) return c.json({ error: parsed.error.message }, 400);
   try {
     const items = parsed.data.items ?? [];
     const adjustments = parsed.data.adjustments ?? [];
@@ -60,102 +58,79 @@ router.post("/simulations", async (req, res) => {
       adjustments,
       status: "draft",
     }).returning();
-    res.status(201).json(serializeSim(sim));
+    return c.json(serializeSim(sim), 201);
   } catch (err) {
-    req.log.error({ err }, "Failed to create simulation");
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Failed to create simulation", err);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
-router.get("/simulations/:id", async (req, res) => {
-  const params = GetSimulationParams.safeParse({ id: Number(req.params.id) });
-  if (!params.success) {
-    res.status(400).json({ error: "Invalid id" });
-    return;
-  }
+router.get("/simulations/:id", async (c) => {
+  const params = GetSimulationParams.safeParse({ id: Number(c.req.param("id")) });
+  if (!params.success) return c.json({ error: "Invalid id" }, 400);
   try {
     const [sim] = await db.select().from(simulationOrdersTable).where(eq(simulationOrdersTable.id, params.data.id));
-    if (!sim) {
-      res.status(404).json({ error: "Simulation not found" });
-      return;
-    }
-    res.json(serializeSim(sim));
+    if (!sim) return c.json({ error: "Simulation not found" }, 404);
+    return c.json(serializeSim(sim));
   } catch (err) {
-    req.log.error({ err }, "Failed to get simulation");
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Failed to get simulation", err);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
-router.patch("/simulations/:id", async (req, res) => {
-  const params = UpdateSimulationParams.safeParse({ id: Number(req.params.id) });
-  const body = UpdateSimulationBody.safeParse(req.body);
-  if (!params.success || !body.success) {
-    res.status(400).json({ error: "Invalid request" });
-    return;
-  }
+router.patch("/simulations/:id", async (c) => {
+  const params = UpdateSimulationParams.safeParse({ id: Number(c.req.param("id")) });
+  if (!params.success) return c.json({ error: "Invalid id" }, 400);
+  let body: unknown;
+  try { body = await c.req.json(); } catch { return c.json({ error: "Invalid JSON" }, 400); }
+  const bodyParsed = UpdateSimulationBody.safeParse(body);
+  if (!bodyParsed.success) return c.json({ error: "Invalid request" }, 400);
   try {
     const updates: Record<string, unknown> = {};
-    if (body.data.supplier_name !== undefined) updates.supplier_name = body.data.supplier_name;
-    if (body.data.items !== undefined) updates.items = body.data.items;
-    if (body.data.adjustments !== undefined) updates.adjustments = body.data.adjustments;
-    if (body.data.status !== undefined) updates.status = body.data.status;
+    if (bodyParsed.data.supplier_name !== undefined) updates.supplier_name = bodyParsed.data.supplier_name;
+    if (bodyParsed.data.items !== undefined) updates.items = bodyParsed.data.items;
+    if (bodyParsed.data.adjustments !== undefined) updates.adjustments = bodyParsed.data.adjustments;
+    if (bodyParsed.data.status !== undefined) updates.status = bodyParsed.data.status;
 
-    const items = (body.data.items ?? []) as Array<{ quantity: number; unit_price: number }>;
-    const adjs = (body.data.adjustments ?? []) as Array<{ amount: number }>;
-    if (body.data.items !== undefined || body.data.adjustments !== undefined) {
+    const items = (bodyParsed.data.items ?? []) as Array<{ quantity: number; unit_price: number }>;
+    const adjs = (bodyParsed.data.adjustments ?? []) as Array<{ amount: number }>;
+    if (bodyParsed.data.items !== undefined || bodyParsed.data.adjustments !== undefined) {
       updates.total_cost = String(calcTotal(items, adjs));
     }
 
     const [sim] = await db.update(simulationOrdersTable).set(updates).where(eq(simulationOrdersTable.id, params.data.id)).returning();
-    if (!sim) {
-      res.status(404).json({ error: "Simulation not found" });
-      return;
-    }
-    res.json(serializeSim(sim));
+    if (!sim) return c.json({ error: "Simulation not found" }, 404);
+    return c.json(serializeSim(sim));
   } catch (err) {
-    req.log.error({ err }, "Failed to update simulation");
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Failed to update simulation", err);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
-router.delete("/simulations/:id", async (req, res) => {
-  const params = DeleteSimulationParams.safeParse({ id: Number(req.params.id) });
-  if (!params.success) {
-    res.status(400).json({ error: "Invalid id" });
-    return;
-  }
+router.delete("/simulations/:id", async (c) => {
+  const params = DeleteSimulationParams.safeParse({ id: Number(c.req.param("id")) });
+  if (!params.success) return c.json({ error: "Invalid id" }, 400);
   try {
     await db.delete(simulationOrdersTable).where(eq(simulationOrdersTable.id, params.data.id));
-    res.status(204).send();
+    return c.body(null, 204);
   } catch (err) {
-    req.log.error({ err }, "Failed to delete simulation");
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Failed to delete simulation", err);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
-router.post("/simulations/:id/commit", async (req, res) => {
-  const params = CommitSimulationParams.safeParse({ id: Number(req.params.id) });
-  if (!params.success) {
-    res.status(400).json({ error: "Invalid id" });
-    return;
-  }
+router.post("/simulations/:id/commit", async (c) => {
+  const params = CommitSimulationParams.safeParse({ id: Number(c.req.param("id")) });
+  if (!params.success) return c.json({ error: "Invalid id" }, 400);
   try {
     const [sim] = await db.select().from(simulationOrdersTable).where(eq(simulationOrdersTable.id, params.data.id));
-    if (!sim) {
-      res.status(404).json({ error: "Simulation not found" });
-      return;
-    }
-    if (sim.status === "committed") {
-      res.status(400).json({ error: "Simulation already committed" });
-      return;
-    }
+    if (!sim) return c.json({ error: "Simulation not found" }, 404);
+    if (sim.status === "committed") return c.json({ error: "Simulation already committed" }, 400);
 
     const items = sim.items as Array<{ product_name: string; variant: string | null; quantity: number; unit_price: number }>;
 
-    // Add each simulation item to products (upsert by name+variant)
     for (const item of items) {
-      const existing = await db.select().from(productsTable)
-        .where(eq(productsTable.name, item.product_name));
+      const existing = await db.select().from(productsTable).where(eq(productsTable.name, item.product_name));
       if (existing.length > 0) {
         await db.update(productsTable)
           .set({ stock_qty: sql`${productsTable.stock_qty} + ${item.quantity}` })
@@ -178,10 +153,10 @@ router.post("/simulations/:id/commit", async (req, res) => {
       .where(eq(simulationOrdersTable.id, params.data.id))
       .returning();
 
-    res.json(serializeSim(updated));
+    return c.json(serializeSim(updated));
   } catch (err) {
-    req.log.error({ err }, "Failed to commit simulation");
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Failed to commit simulation", err);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 

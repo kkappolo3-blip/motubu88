@@ -1,10 +1,9 @@
-import { Router } from "express";
-import { db } from "@workspace/db";
+import { Hono } from "hono";
+import { db, eq, sql } from "@workspace/db";
 import { productsTable, transactionsTable, installmentsTable } from "@workspace/db/schema";
-import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
-const router = Router();
+const router = new Hono();
 
 const cartItemSchema = z.object({
   product_id: z.number().int().positive(),
@@ -20,40 +19,32 @@ const checkoutSchema = z.object({
   customer_name: z.string().optional().nullable(),
 });
 
-router.post("/kasir/checkout", async (req, res) => {
-  const parse = checkoutSchema.safeParse(req.body);
-  if (!parse.success) {
-    res.status(400).json({ error: "Input tidak valid", details: parse.error.issues });
-    return;
-  }
+router.post("/kasir/checkout", async (c) => {
+  let body: unknown;
+  try { body = await c.req.json(); } catch { return c.json({ error: "Invalid JSON" }, 400); }
+  const parse = checkoutSchema.safeParse(body);
+  if (!parse.success) return c.json({ error: "Input tidak valid", details: parse.error.issues }, 400);
 
   const { items, payment_method, customer_name } = parse.data;
 
   if (payment_method === "cicilan" && !customer_name?.trim()) {
-    res.status(400).json({ error: "Nama pelanggan wajib diisi untuk pembayaran cicilan" });
-    return;
+    return c.json({ error: "Nama pelanggan wajib diisi untuk pembayaran cicilan" }, 400);
   }
 
   const totalAmount = items.reduce((sum, i) => sum + i.qty * i.custom_price, 0);
   const today = new Date().toISOString().split("T")[0];
 
-  // Decrement stock for each item
   for (const item of items) {
     const [product] = await db.select().from(productsTable).where(eq(productsTable.id, item.product_id));
-    if (!product) {
-      res.status(404).json({ error: `Produk ID ${item.product_id} tidak ditemukan` });
-      return;
-    }
+    if (!product) return c.json({ error: `Produk ID ${item.product_id} tidak ditemukan` }, 404);
     if (product.stock_qty < item.qty) {
-      res.status(400).json({ error: `Stok "${product.name}" tidak cukup (tersedia: ${product.stock_qty})` });
-      return;
+      return c.json({ error: `Stok "${product.name}" tidak cukup (tersedia: ${product.stock_qty})` }, 400);
     }
     await db.update(productsTable)
       .set({ stock_qty: sql`${productsTable.stock_qty} - ${item.qty}` })
       .where(eq(productsTable.id, item.product_id));
   }
 
-  // Create installment if cicilan
   let installmentId: number | null = null;
   if (payment_method === "cicilan") {
     const [installment] = await db.insert(installmentsTable).values({
@@ -67,7 +58,6 @@ router.post("/kasir/checkout", async (req, res) => {
     installmentId = installment.id;
   }
 
-  // Create transaction
   const description = payment_method === "cicilan"
     ? `Penjualan cicilan - ${customer_name} (${items.length} item)`
     : `Penjualan tunai (${items.length} item)`;
@@ -80,12 +70,12 @@ router.post("/kasir/checkout", async (req, res) => {
     installment_id: installmentId,
   }).returning();
 
-  res.status(201).json({
+  return c.json({
     transaction_id: transaction.id,
     installment_id: installmentId,
     total_amount: totalAmount,
     payment_method,
-  });
+  }, 201);
 });
 
 export default router;

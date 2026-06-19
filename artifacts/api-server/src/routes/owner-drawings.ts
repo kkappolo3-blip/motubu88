@@ -1,6 +1,5 @@
-import { Router } from "express";
-import { db, ownerDrawingsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { Hono } from "hono";
+import { db, ownerDrawingsTable, eq } from "@workspace/db";
 import {
   CreateOwnerDrawingBody,
   UpdateOwnerDrawingBody,
@@ -8,7 +7,7 @@ import {
   DeleteOwnerDrawingParams,
 } from "@workspace/api-zod";
 
-const router = Router();
+const router = new Hono();
 
 function serializeDrawing(d: typeof ownerDrawingsTable.$inferSelect) {
   return {
@@ -20,72 +19,64 @@ function serializeDrawing(d: typeof ownerDrawingsTable.$inferSelect) {
   };
 }
 
-router.get("/owner-drawings", async (req, res) => {
+router.get("/owner-drawings", async (c) => {
   try {
     const drawings = await db.select().from(ownerDrawingsTable).orderBy(ownerDrawingsTable.created_at);
-    res.json(drawings.map(serializeDrawing));
+    return c.json(drawings.map(serializeDrawing));
   } catch (err) {
-    req.log.error({ err }, "Failed to list owner drawings");
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Failed to list owner drawings", err);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
-router.post("/owner-drawings", async (req, res) => {
-  const parsed = CreateOwnerDrawingBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
+router.post("/owner-drawings", async (c) => {
+  let body: unknown;
+  try { body = await c.req.json(); } catch { return c.json({ error: "Invalid JSON" }, 400); }
+  const parsed = CreateOwnerDrawingBody.safeParse(body);
+  if (!parsed.success) return c.json({ error: parsed.error.message }, 400);
   try {
     const [drawing] = await db.insert(ownerDrawingsTable).values({
       description: parsed.data.description,
       amount: String(parsed.data.amount),
       date: parsed.data.date,
     }).returning();
-    res.status(201).json(serializeDrawing(drawing));
+    return c.json(serializeDrawing(drawing), 201);
   } catch (err) {
-    req.log.error({ err }, "Failed to create owner drawing");
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Failed to create owner drawing", err);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
-router.patch("/owner-drawings/:id", async (req, res) => {
-  const params = UpdateOwnerDrawingParams.safeParse({ id: Number(req.params.id) });
-  const body = UpdateOwnerDrawingBody.safeParse(req.body);
-  if (!params.success || !body.success) {
-    res.status(400).json({ error: "Invalid request" });
-    return;
-  }
+router.patch("/owner-drawings/:id", async (c) => {
+  const params = UpdateOwnerDrawingParams.safeParse({ id: Number(c.req.param("id")) });
+  if (!params.success) return c.json({ error: "Invalid id" }, 400);
+  let body: unknown;
+  try { body = await c.req.json(); } catch { return c.json({ error: "Invalid JSON" }, 400); }
+  const bodyParsed = UpdateOwnerDrawingBody.safeParse(body);
+  if (!bodyParsed.success) return c.json({ error: "Invalid request" }, 400);
   try {
     const updates: Record<string, unknown> = {};
-    if (body.data.description !== undefined) updates.description = body.data.description;
-    if (body.data.amount !== undefined) updates.amount = String(body.data.amount);
-    if (body.data.date !== undefined) updates.date = body.data.date;
-
+    if (bodyParsed.data.description !== undefined) updates.description = bodyParsed.data.description;
+    if (bodyParsed.data.amount !== undefined) updates.amount = String(bodyParsed.data.amount);
+    if (bodyParsed.data.date !== undefined) updates.date = bodyParsed.data.date;
     const [drawing] = await db.update(ownerDrawingsTable).set(updates).where(eq(ownerDrawingsTable.id, params.data.id)).returning();
-    if (!drawing) {
-      res.status(404).json({ error: "Owner drawing not found" });
-      return;
-    }
-    res.json(serializeDrawing(drawing));
+    if (!drawing) return c.json({ error: "Owner drawing not found" }, 404);
+    return c.json(serializeDrawing(drawing));
   } catch (err) {
-    req.log.error({ err }, "Failed to update owner drawing");
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Failed to update owner drawing", err);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
-router.delete("/owner-drawings/:id", async (req, res) => {
-  const params = DeleteOwnerDrawingParams.safeParse({ id: Number(req.params.id) });
-  if (!params.success) {
-    res.status(400).json({ error: "Invalid id" });
-    return;
-  }
+router.delete("/owner-drawings/:id", async (c) => {
+  const params = DeleteOwnerDrawingParams.safeParse({ id: Number(c.req.param("id")) });
+  if (!params.success) return c.json({ error: "Invalid id" }, 400);
   try {
     await db.delete(ownerDrawingsTable).where(eq(ownerDrawingsTable.id, params.data.id));
-    res.status(204).send();
+    return c.body(null, 204);
   } catch (err) {
-    req.log.error({ err }, "Failed to delete owner drawing");
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Failed to delete owner drawing", err);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 

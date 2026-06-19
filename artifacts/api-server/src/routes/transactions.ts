@@ -1,8 +1,8 @@
-import { Router } from "express";
+import { Hono } from "hono";
 import { db, transactionsTable } from "@workspace/db";
 import { CreateTransactionBody } from "@workspace/api-zod";
 
-const router = Router();
+const router = new Hono();
 
 function serializeTransaction(t: typeof transactionsTable.$inferSelect) {
   return {
@@ -15,22 +15,21 @@ function serializeTransaction(t: typeof transactionsTable.$inferSelect) {
   };
 }
 
-router.get("/transactions", async (req, res) => {
+router.get("/transactions", async (c) => {
   try {
     const txns = await db.select().from(transactionsTable).orderBy(transactionsTable.created_at);
-    res.json(txns.map(serializeTransaction));
+    return c.json(txns.map(serializeTransaction));
   } catch (err) {
-    req.log.error({ err }, "Failed to list transactions");
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Failed to list transactions", err);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
-router.post("/transactions", async (req, res) => {
-  const parsed = CreateTransactionBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
+router.post("/transactions", async (c) => {
+  let body: unknown;
+  try { body = await c.req.json(); } catch { return c.json({ error: "Invalid JSON" }, 400); }
+  const parsed = CreateTransactionBody.safeParse(body);
+  if (!parsed.success) return c.json({ error: parsed.error.message }, 400);
   try {
     const [txn] = await db.insert(transactionsTable).values({
       date: parsed.data.date,
@@ -38,10 +37,10 @@ router.post("/transactions", async (req, res) => {
       amount: String(parsed.data.amount),
       description: parsed.data.description,
     }).returning();
-    res.status(201).json(serializeTransaction(txn));
+    return c.json(serializeTransaction(txn), 201);
   } catch (err) {
-    req.log.error({ err }, "Failed to create transaction");
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Failed to create transaction", err);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 

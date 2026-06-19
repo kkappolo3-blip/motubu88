@@ -1,21 +1,20 @@
-import { Router } from "express";
-import { db } from "@workspace/db";
+import { Hono } from "hono";
+import { db, eq } from "@workspace/db";
 import { installmentsTable } from "@workspace/db/schema";
-import { eq } from "drizzle-orm";
 import { z } from "zod";
 
-const router = Router();
+const router = new Hono();
 
-router.get("/installments", async (_req, res) => {
+router.get("/installments", async (c) => {
   const rows = await db.select().from(installmentsTable).orderBy(installmentsTable.created_at);
-  res.json(rows);
+  return c.json(rows);
 });
 
-router.get("/installments/:id", async (req, res) => {
-  const id = Number(req.params.id);
+router.get("/installments/:id", async (c) => {
+  const id = Number(c.req.param("id"));
   const [row] = await db.select().from(installmentsTable).where(eq(installmentsTable.id, id));
-  if (!row) { res.status(404).json({ error: "Cicilan tidak ditemukan" }); return; }
-  res.json(row);
+  if (!row) return c.json({ error: "Cicilan tidak ditemukan" }, 404);
+  return c.json(row);
 });
 
 const paymentSchema = z.object({
@@ -23,20 +22,16 @@ const paymentSchema = z.object({
   note: z.string().optional().nullable(),
 });
 
-router.post("/installments/:id/payment", async (req, res) => {
-  const id = Number(req.params.id);
-  const parse = paymentSchema.safeParse(req.body);
-  if (!parse.success) {
-    res.status(400).json({ error: "Input tidak valid", details: parse.error.issues });
-    return;
-  }
+router.post("/installments/:id/payment", async (c) => {
+  const id = Number(c.req.param("id"));
+  let body: unknown;
+  try { body = await c.req.json(); } catch { return c.json({ error: "Invalid JSON" }, 400); }
+  const parse = paymentSchema.safeParse(body);
+  if (!parse.success) return c.json({ error: "Input tidak valid", details: parse.error.issues }, 400);
 
   const [installment] = await db.select().from(installmentsTable).where(eq(installmentsTable.id, id));
-  if (!installment) { res.status(404).json({ error: "Cicilan tidak ditemukan" }); return; }
-  if (installment.status === "lunas") {
-    res.status(400).json({ error: "Cicilan sudah lunas" });
-    return;
-  }
+  if (!installment) return c.json({ error: "Cicilan tidak ditemukan" }, 404);
+  if (installment.status === "lunas") return c.json({ error: "Cicilan sudah lunas" }, 400);
 
   const { amount, note } = parse.data;
   const currentPaid = Number(installment.paid_amount);
@@ -58,7 +53,7 @@ router.post("/installments/:id/payment", async (req, res) => {
     .where(eq(installmentsTable.id, id))
     .returning();
 
-  res.json(updated);
+  return c.json(updated);
 });
 
 export default router;

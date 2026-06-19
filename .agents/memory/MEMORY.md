@@ -1,2 +1,3 @@
 - [API server zod import](api-server-zod.md) — must add `zod` to api-server dependencies and use `import { z } from "zod"`, not `zod/v4` (esbuild can't resolve subpath exports)
 - [Orval hook param shape](orval-hook-params.md) — path param hooks take the id as a bare primitive, not an object: `useGetX(id, opts)` not `useGetX({ id }, opts)`
+- [Drizzle duplicate peer dep fix](drizzle-peer-dep.md) — import eq/sql/etc from @workspace/db re-exports, not drizzle-orm directly, to prevent incompatible private type errors

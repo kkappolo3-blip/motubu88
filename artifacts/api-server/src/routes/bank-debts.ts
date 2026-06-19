@@ -1,6 +1,5 @@
-import { Router } from "express";
-import { db, bankDebtsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { Hono } from "hono";
+import { db, bankDebtsTable, eq } from "@workspace/db";
 import {
   CreateBankDebtBody,
   UpdateBankDebtBody,
@@ -8,7 +7,7 @@ import {
   DeleteBankDebtParams,
 } from "@workspace/api-zod";
 
-const router = Router();
+const router = new Hono();
 
 function serializeDebt(d: typeof bankDebtsTable.$inferSelect) {
   return {
@@ -22,22 +21,21 @@ function serializeDebt(d: typeof bankDebtsTable.$inferSelect) {
   };
 }
 
-router.get("/bank-debts", async (req, res) => {
+router.get("/bank-debts", async (c) => {
   try {
     const debts = await db.select().from(bankDebtsTable).orderBy(bankDebtsTable.created_at);
-    res.json(debts.map(serializeDebt));
+    return c.json(debts.map(serializeDebt));
   } catch (err) {
-    req.log.error({ err }, "Failed to list bank debts");
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Failed to list bank debts", err);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
-router.post("/bank-debts", async (req, res) => {
-  const parsed = CreateBankDebtBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
+router.post("/bank-debts", async (c) => {
+  let body: unknown;
+  try { body = await c.req.json(); } catch { return c.json({ error: "Invalid JSON" }, 400); }
+  const parsed = CreateBankDebtBody.safeParse(body);
+  if (!parsed.success) return c.json({ error: parsed.error.message }, 400);
   try {
     const [debt] = await db.insert(bankDebtsTable).values({
       bank_name: parsed.data.bank_name,
@@ -46,52 +44,45 @@ router.post("/bank-debts", async (req, res) => {
       paid_amount: String(parsed.data.paid_amount ?? 0),
       status: "active",
     }).returning();
-    res.status(201).json(serializeDebt(debt));
+    return c.json(serializeDebt(debt), 201);
   } catch (err) {
-    req.log.error({ err }, "Failed to create bank debt");
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Failed to create bank debt", err);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
-router.patch("/bank-debts/:id", async (req, res) => {
-  const params = UpdateBankDebtParams.safeParse({ id: Number(req.params.id) });
-  const body = UpdateBankDebtBody.safeParse(req.body);
-  if (!params.success || !body.success) {
-    res.status(400).json({ error: "Invalid request" });
-    return;
-  }
+router.patch("/bank-debts/:id", async (c) => {
+  const params = UpdateBankDebtParams.safeParse({ id: Number(c.req.param("id")) });
+  if (!params.success) return c.json({ error: "Invalid id" }, 400);
+  let body: unknown;
+  try { body = await c.req.json(); } catch { return c.json({ error: "Invalid JSON" }, 400); }
+  const bodyParsed = UpdateBankDebtBody.safeParse(body);
+  if (!bodyParsed.success) return c.json({ error: "Invalid request" }, 400);
   try {
     const updates: Record<string, unknown> = {};
-    if (body.data.bank_name !== undefined) updates.bank_name = body.data.bank_name;
-    if (body.data.principal_amount !== undefined) updates.principal_amount = String(body.data.principal_amount);
-    if (body.data.interest_amount !== undefined) updates.interest_amount = String(body.data.interest_amount);
-    if (body.data.paid_amount !== undefined) updates.paid_amount = String(body.data.paid_amount);
-    if (body.data.status !== undefined) updates.status = body.data.status;
-
+    if (bodyParsed.data.bank_name !== undefined) updates.bank_name = bodyParsed.data.bank_name;
+    if (bodyParsed.data.principal_amount !== undefined) updates.principal_amount = String(bodyParsed.data.principal_amount);
+    if (bodyParsed.data.interest_amount !== undefined) updates.interest_amount = String(bodyParsed.data.interest_amount);
+    if (bodyParsed.data.paid_amount !== undefined) updates.paid_amount = String(bodyParsed.data.paid_amount);
+    if (bodyParsed.data.status !== undefined) updates.status = bodyParsed.data.status;
     const [debt] = await db.update(bankDebtsTable).set(updates).where(eq(bankDebtsTable.id, params.data.id)).returning();
-    if (!debt) {
-      res.status(404).json({ error: "Bank debt not found" });
-      return;
-    }
-    res.json(serializeDebt(debt));
+    if (!debt) return c.json({ error: "Bank debt not found" }, 404);
+    return c.json(serializeDebt(debt));
   } catch (err) {
-    req.log.error({ err }, "Failed to update bank debt");
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Failed to update bank debt", err);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
-router.delete("/bank-debts/:id", async (req, res) => {
-  const params = DeleteBankDebtParams.safeParse({ id: Number(req.params.id) });
-  if (!params.success) {
-    res.status(400).json({ error: "Invalid id" });
-    return;
-  }
+router.delete("/bank-debts/:id", async (c) => {
+  const params = DeleteBankDebtParams.safeParse({ id: Number(c.req.param("id")) });
+  if (!params.success) return c.json({ error: "Invalid id" }, 400);
   try {
     await db.delete(bankDebtsTable).where(eq(bankDebtsTable.id, params.data.id));
-    res.status(204).send();
+    return c.body(null, 204);
   } catch (err) {
-    req.log.error({ err }, "Failed to delete bank debt");
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Failed to delete bank debt", err);
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
